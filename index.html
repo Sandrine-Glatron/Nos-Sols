@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nos Sol - Dashboard Biodiversité</title>
+    <link rel="icon" href="insectes.png">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <!-- Leaflet JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+
+    <!-- Chargement des données GeoJSON -->
+    <script type='text/javascript' src='pieges.json'></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2d5a27;
+            --secondary-color: #4a7c59;
+            --accent-color: #90c695;
+            --highlight-color: #bbf519;
+            --text-dark: #2c3e50;
+            --text-light: #ecf0f1;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* Header avec effet glassmorphism */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .logo img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stats-bar {
+            margin-left: auto;
+            display: flex;
+            gap: 2rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-dark);
+            opacity: 0.7;
+        }
+
+        /* Container principal */
+        .main-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            height: calc(100vh - 100px);
+            gap: 1rem;
+            padding: 1rem;
+            max-width: 100%;
+        }
+
+        /* Panel de contrôle moderne */
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow-y: auto;
+        }
+
+        .panel-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .menu-item {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--highlight-color);
+            background: linear-gradient(135deg, rgba(187, 245, 25, 0.1), rgba(74, 124, 89, 0.1));
+        }
+
+        .menu-item.active {
+            background: linear-gradient(135deg, var(--highlight-color), var(--accent-color));
+            color: white;
+            border-color: var(--highlight-color);
+        }
+
+        .menu-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .menu-item.active .menu-icon {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Submenu pour abondance */
+        .sub-menu {
+            display: none;
+            margin-top: 1rem;
+            padding-left: 1rem;
+        }
+
+        .sub-menu-item {
+            background: var(--background);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .sub-menu-item:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* Dropdowns modernes */
+        .dropdown-container {
+            background: var(--background);
+            border-radius: 15px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            background: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--highlight-color);
+            box-shadow: 0 0 0 3px rgba(187, 245, 25, 0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Carte avec effets modernes */
+        .map-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            border-radius: 20px;
+        }
+
+        /* Panel latéral avec animations */
+        .side-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 2000;
+            overflow-y: auto;
+        }
+
+        .side-panel.open {
+            right: 0;
+        }
+
+        .panel-header {
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .panel-content {
+            padding: 2rem;
+        }
+
+        /* Légendes modernes */
+        .legend {
+            background: var(--background);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        .legend-item:hover {
+            background: rgba(187, 245, 25, 0.1);
+        }
+
+        .legend-circle {
+            border-radius: 50%;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Tableau moderne */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.3s ease;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(187, 245, 25, 0.1);
+        }
+
+        .data-table a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .data-table a:hover {
+            color: var(--highlight-color);
+        }
+
+        /* Chart container */
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        /* Footer moderne */
+        .footer {
+            background: linear-gradient(135deg, var(--text-dark), #34495e);
+            color: var(--text-light);
+            padding: 3rem 2rem 1rem;
+            margin-top: 2rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-section h3 {
+            margin-bottom: 1rem;
+            color: var(--highlight-color);
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            list-style: none;
+        }
+
+        .social-links a {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .social-links a:hover {
+            background: var(--highlight-color);
+            transform: translateY(-2px);
+        }
+
+        .copyright {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0.7;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            box-shadow: var(--shadow-lg);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 3000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        /* Actions buttons */
+        .actions-container {
+            display: flex;
+            gap: 10px;
+            margin-left: 20px;
+        }
+
+        .action-btn {
+            background: rgba(255,255,255,0.9);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            border-color: var(--highlight-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .stats-bar {
+                margin-left: 0;
+            }
+            
+            .side-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header moderne -->
+    <header class="header">
+        <div class="logo">
+            <img src="logo.png" alt="Logo Nos Sol">
+        </div>
+        <h1>Nos Sol</h1>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-number" id="totalPieges">--</div>
+                <div class="stat-label">Pièges</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="totalSessions">--</div>
+                <div class="stat-label">Sessions</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="totalAnnees">--</div>
+                <div class="stat-label">Années</div>
+            </div>
+        </div>
+        <div class="actions-container">
+            <button class="action-btn" onclick="resetView()" title="Réinitialiser">
+                <i class="fas fa-refresh"></i>
+            </button>
+            <button class="action-btn" onclick="showHelp()" title="Aide">
+                <i class="fas fa-question"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Container principal -->
+    <div class="main-container">
+        <!-- Panel de contrôle -->
+        <div class="control-panel fade-in">
+            <div class="panel-section">
+                <h2 class="section-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Analyses
+                </h2>
+                
+                <div class="menu-item" onclick="selectMenu('abundance')" data-menu="abundance">
+                    <div class="menu-icon">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">Abondance</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7;">Quantité totale d'espèces</div>
+                    </div>
+                </div>
+
+                <!-- Sous-menu pour abondance -->
+                <div class="sub-menu" id="abundanceSubMenu">
+                    <div class="sub-menu-item" onclick="selectAbundanceType('piege')">
+                        Abondance par piège
+                    </div>
+                    <div class="sub-menu-item" onclick="selectAbundanceType('date')">
+                        Abondance par date
+                    </div>
+                </div>
+
+                <div class="menu-item" onclick="selectMenu('diversity')" data-menu="diversity">
+                    <div class="menu-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">Diversité</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7;">Nombre de types de faune</div>
+                    </div>
+                </div>
+
+                <div class="menu-item" onclick="selectMenu('fauna')" data-menu="fauna">
+                    <div class="menu-icon">
+                        <i class="fas fa-bug"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">Faune</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7;">Détail par espèce</div>
+                    </div>
+                </div>
+
+                <div class="menu-item" onclick="selectMenu('shannon')" data-menu="shannon">
+                    <div class="menu-icon">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">Indice Shannon</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7;">Mesure de biodiversité</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h2 class="section-title">
+                    <i class="fas fa-filter"></i>
+                    Filtres
+                </h2>
+                
+                <div class="dropdown-container" id="filterContainer">
+                    <div class="form-group">
+                        <label class="form-label" for="dateSelect">
+                            <i class="fas fa-calendar"></i> Année
+                        </label>
+                        <select class="form-select" id="dateSelect" onchange="updateSelectedDate()">
+                            <option value="choix">-- Choisissez une année --</option>
+                            <option value="tout">Toutes les années</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="sessionSelect">
+                            <i class="fas fa-list-ol"></i> Session
+                        </label>
+                        <select class="form-select" id="sessionSelect" onchange="updateSelectedSession()">
+                            <option value="choix">-- Choisissez une session --</option>
+                            <option value="tout">Toutes les sessions</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-primary" onclick="applyAnalysis()">
+                        <i class="fas fa-search"></i> Analyser
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h2 class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Instructions
+                </h2>
+                <div style="background: var(--background); padding: 1rem; border-radius: 10px; font-size: 0.9rem; line-height: 1.5;">
+                    <p><strong>1.</strong> Sélectionnez un type d'analyse</p>
+                    <p><strong>2.</strong> Choisissez les filtres temporels</p>
+                    <p><strong>3.</strong> Cliquez sur "Analyser"</p>
+                    <p><strong>4.</strong> Explorez les résultats</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte -->
+        <div class="map-container fade-in">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Panel latéral -->
+    <div class="side-panel" id="sidePanel">
+        <div class="panel-header">
+            <h2 id="panelTitle">Résultats d'analyse</h2>
+            <button class="close-btn" onclick="closeSidePanel()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="panel-content" id="panelContent">
+            <!-- Contenu dynamique -->
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3><i class="fas fa-map-marker-alt"></i> Contact</h3>
+                <p>All. du Général Rouvillois</p>
+                <p>67083 Strasbourg, France</p>
+                <p><i class="fas fa-envelope"></i> contact.solenville@gmail.com</p>
+            </div>
+            <div class="footer-section">
+                <h3><i class="fas fa-share-alt"></i> Suivez-nous</h3>
+                <ul class="social-links">
+                    <li><a href="https://www.facebook.com/solenville/?locale=fr_FR" target="_blank">
+                        <i class="fab fa-facebook-f"></i>
+                    </a></li>
+                    <li><a href="https://zaeu-strasbourg.eu/presentation/projets/solenville/" target="_blank">
+                        <i class="fas fa-globe"></i>
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="copyright">
+            <p>&copy; 2024 Solenville - Réalisé par Afafe ZARBAI. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Variables globales
+        let map;
+        let currentLayer;
+        let geojsonLayer;
+        let selectedMenu = '';
+        let selectedAbundanceType = '';
+        let selectedDate = '';
+        let selectedSession = '';
+        let currentChart = null;
+        let submenuSelected = false;
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Attendre un peu pour que le fichier soit chargé
+            setTimeout(() => {
+                if (typeof pieges === 'undefined') {
+                    showNotification('Chargement des données en cours...', 'info');
+                    // Essayer de charger le fichier avec fetch si pieges n'est pas défini
+                    loadGeoJSONData();
+                } else {
+                    initializeApp();
+                }
+            }, 500);
+        });
+
+        // Fonction pour charger les données GeoJSON
+        async function loadGeoJSONData() {
+            try {
+                // Essayer de charger le fichier .json d'abord
+                let response = await fetch('./couches/pieges.json');
+                if (!response.ok) {
+                    // Si .json ne marche pas, essayer .geojson
+                    response = await fetch('./couches/pieges.geojson');
+                }
+                
+                if (!response.ok) {
+                    throw new Error('Fichier non trouvé');
+                }
+                
+                const data = await response.json();
+                
+                // Assigner les données à la variable globale pieges
+                window.pieges = data;
+                
+                initializeApp();
+                showNotification('Données chargées avec succès!', 'success');
+                
+            } catch (error) {
+                console.error('Erreur lors du chargement:', error);
+                showNotification('Erreur: Impossible de charger le fichier de données. Utilisation des données de démonstration.', 'warning');
+                
+                // Utiliser des données de démonstration
+                window.pieges = createDemoData();
+                initializeApp();
+            }
+        }
+
+        // Fonction d'initialisation principale
+        function initializeApp() {
+            initializeMap();
+            populateDropdowns();
+            updateStats();
+        }
+
+        // Données de démonstration en cas d'échec du chargement
+        function createDemoData() {
+            return {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [7.7521113, 48.5734053]
+                        },
+                        "properties": {
+                            "pg_id": "P001",
+                            "abondance": 45,
+                            "diversite": 8,
+                            "shanon": 2.1,
+                            "annees": 2023,
+                            "sess_num": 1,
+                            "acariens": 5,
+                            "araignees": 8,
+                            "carabes": 12,
+                            "fourmis": 15,
+                            "cicadelles": 3,
+                            "collembole": 2
+                        }
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [7.7551113, 48.5754053]
+                        },
+                        "properties": {
+                            "pg_id": "P002",
+                            "abondance": 67,
+                            "diversite": 12,
+                            "shanon": 2.8,
+                            "annees": 2023,
+                            "sess_num": 1,
+                            "acariens": 8,
+                            "araignees": 12,
+                            "carabes": 18,
+                            "fourmis": 20,
+                            "cicadelles": 6,
+                            "collembole": 3
+                        }
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [7.7491113, 48.5714053]
+                        },
+                        "properties": {
+                            "pg_id": "P003",
+                            "abondance": 23,
+                            "diversite": 6,
+                            "shanon": 1.5,
+                            "annees": 2024,
+                            "sess_num": 2,
+                            "acariens": 2,
+                            "araignees": 5,
+                            "carabes": 8,
+                            "fourmis": 8,
+                            "cicadelles": 0,
+                            "collembole": 0
+                        }
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [7.7581113, 48.5774053]
+                        },
+                        "properties": {
+                            "pg_id": "P004",
+                            "abondance": 89,
+                            "diversite": 15,
+                            "shanon": 3.2,
+                            "annees": 2024,
+                            "sess_num": 1,
+                            "acariens": 12,
+                            "araignees": 15,
+                            "carabes": 22,
+                            "fourmis": 25,
+                            "cicadelles": 8,
+                            "collembole": 7
+                        }
+                    }
+                ]
+            };
+        }
+
+        function initializeMap() {
+            map = L.map('map').setView([48.5734053, 7.7521113], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+
+            // Ajouter les marqueurs initiaux avec icône personnalisée
+            addInitialMarkers();
+        }
+
+        function addInitialMarkers() {
+            // Vérifier si les données sont disponibles
+            if (!window.pieges || !window.pieges.features) {
+                console.error('Données pieges non disponibles');
+                return;
+            }
+
+            const customIcon = L.icon({
+                iconUrl: './iconImage/location_piege.png',
+                iconSize: [50, 50],
+                iconAnchor: [25, 25],
+                popupAnchor: [0, -25]
+            });
+
+            geojsonLayer = L.geoJson(window.pieges, {
+                pointToLayer: function (feature, latlng) {
+                    return L.marker(latlng, { icon: customIcon });
+                },
+                onEachFeature: function (feature, layer) {
+                    const props = feature.properties;
+                    layer.bindPopup(`
+                        <div style="padding: 15px; min-width: 250px;">
+                            <h3 style="margin: 0 0 15px 0; color: #2d5a27; display: flex; align-items: center;">
+                                <i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>
+                                Piège ${props.pg_id}
+                            </h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9em;">
+                                <div><strong>Abondance:</strong> ${props.abondance || 0}</div>
+                                <div><strong>Diversité:</strong> ${props.diversite || 0}</div>
+                                <div><strong>Shannon:</strong> ${props.shanon || 0}</div>
+                                <div><strong>Année:</strong> ${props.annees || 'N/A'}</div>
+                                <div><strong>Session:</strong> ${props.sess_num || 'N/A'}</div>
+                            </div>
+                        </div>
+                    `);
+
+                    // Gestion des clics pour abondance par piège
+                    layer.on('click', function() {
+                        if (submenuSelected && selectedAbundanceType === 'piege') {
+                            const abundanceValue = props.abondance || 0;
+                            layer.bindPopup(`
+                                <div style="padding: 15px; min-width: 200px;">
+                                    <h3 style="margin: 0 0 15px 0; color: #2d5a27;">
+                                        <i class="fas fa-chart-bar"></i> Piège ${props.pg_id}
+                                    </h3>
+                                    <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 15px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 2rem; font-weight: bold; color: #ff7800;">${abundanceValue}</div>
+                                        <div style="font-size: 1rem; color: #666; margin-top: 5px;">spécimens capturés</div>
+                                    </div>
+                                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                                        <div><strong>Année:</strong> ${props.annees}</div>
+                                        <div><strong>Session:</strong> ${props.sess_num}</div>
+                                    </div>
+                                </div>
+                            `).openPopup();
+                        }
+                    });
+                }
+            }).addTo(map);
+        }
+
+        function selectMenu(menuType) {
+            // Désélectionner tous les menus
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Cacher tous les sous-menus
+            document.querySelectorAll('.sub-menu').forEach(menu => {
+                menu.style.display = 'none';
+            });
+
+            // Sélectionner le menu actuel
+            document.querySelector(`[data-menu="${menuType}"]`).classList.add('active');
+            selectedMenu = menuType;
+            submenuSelected = false;
+
+            // Afficher le sous-menu pour abondance
+            if (menuType === 'abundance') {
+                document.getElementById('abundanceSubMenu').style.display = 'block';
+            } else {
+                // Afficher les filtres directement pour les autres menus
+                document.getElementById('filterContainer').style.display = 'block';
+            }
+            
+            showNotification(`Analyse "${getMenuDisplayName(menuType)}" sélectionnée`, 'info');
+        }
+
+        function selectAbundanceType(type) {
+            selectedAbundanceType = type;
+            submenuSelected = true;
+
+            // Mettre en évidence le sous-menu sélectionné
+            document.querySelectorAll('.sub-menu-item').forEach(item => {
+                item.style.background = 'var(--background)';
+                item.style.color = 'inherit';
+            });
+
+            event.target.style.background = 'var(--accent-color)';
+            event.target.style.color = 'white';
+
+            if (type === 'piege') {
+                showNotification('Cliquez sur un piège dans la carte pour voir son abondance', 'info');
+            } else {
+                // Afficher les filtres pour abondance par date
+                document.getElementById('filterContainer').style.display = 'block';
+            }
+        }
+
+        function getMenuDisplayName(menuType) {
+            const names = {
+                'abundance': 'Abondance',
+                'diversity': 'Diversité',
+                'fauna': 'Faune',
+                'shannon': 'Indice Shannon'
+            };
+            return names[menuType] || menuType;
+        }
+
+        function populateDropdowns() {
+            if (!window.pieges || !window.pieges.features) return;
+
+            const dateSelect = document.getElementById('dateSelect');
+            const years = [...new Set(window.pieges.features.map(f => f.properties.annees))].filter(y => y).sort((a, b) => b - a);
+            
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                dateSelect.appendChild(option);
+            });
+        }
+
+        function updateSelectedDate() {
+            selectedDate = document.getElementById('dateSelect').value;
+            if (selectedDate !== 'choix') {
+                populateSessionDropdown();
+            }
+        }
+
+        function populateSessionDropdown() {
+            const sessionSelect = document.getElementById('sessionSelect');
+            sessionSelect.innerHTML = '<option value="choix">-- Choisissez une session --</option><option value="tout">Toutes les sessions</option>';
+
+            let filteredData = window.pieges.features;
+            if (selectedDate !== 'tout') {
+                filteredData = window.pieges.features.filter(f => f.properties.annees == selectedDate);
+            }
+
+            const sessions = [...new Set(filteredData.map(f => f.properties.sess_num))].filter(s => s).sort((a, b) => a - b);
+            sessions.forEach(session => {
+                const option = document.createElement('option');
+                option.value = session;
+                option.textContent = `Session ${session}`;
+                sessionSelect.appendChild(option);
+            });
+        }
+
+        function updateSelectedSession() {
+            selectedSession = document.getElementById('sessionSelect').value;
+        }
+
+        function applyAnalysis() {
+            if (!selectedMenu) {
+                showNotification('Veuillez sélectionner un type d\'analyse', 'warning');
+                return;
+            }
+
+            if (selectedMenu === 'abundance' && selectedAbundanceType === 'piege') {
+                showNotification('Cliquez sur un piège dans la carte pour voir son abondance', 'info');
+                return;
+            }
+
+            if (selectedDate === 'choix' || selectedSession === 'choix') {
+                showNotification('Veuillez sélectionner une année et une session', 'warning');
+                return;
+            }
+
+            // Filtrer les données
+            let filteredData = window.pieges.features;
+            
+            if (selectedDate !== 'tout') {
+                filteredData = filteredData.filter(f => f.properties.annees == selectedDate);
+            }
+            
+            if (selectedSession !== 'tout') {
+                filteredData = filteredData.filter(f => f.properties.sess_num == selectedSession);
+            }
+
+            if (filteredData.length === 0) {
+                showNotification('Aucune donnée trouvée pour ces critères', 'warning');
+                return;
+            }
+
+            // Mettre à jour la carte
+            updateMapVisualization(filteredData);
+            
+            // Ouvrir le panel latéral avec les résultats
+            openSidePanel(filteredData);
+            
+            showNotification('Analyse appliquée avec succès!', 'success');
+        }
+
+        function updateMapVisualization(data) {
+            // Supprimer la couche précédente
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
+
+            // Cacher la couche initiale
+            if (geojsonLayer && map.hasLayer(geojsonLayer)) {
+                map.removeLayer(geojsonLayer);
+            }
+
+            // Créer une nouvelle couche selon le type d'analyse
+            currentLayer = L.layerGroup();
+
+            data.forEach(feature => {
+                let marker;
+                const coords = [feature.geometry.coordinates[1], feature.geometry.coordinates[0]];
+                
+                switch (selectedMenu) {
+                    case 'abundance':
+                        marker = createAbundanceMarker(coords, feature.properties);
+                        break;
+                    case 'diversity':
+                        marker = createDiversityMarker(coords, feature.properties);
+                        break;
+                    case 'fauna':
+                        marker = createFaunaMarker(coords, feature.properties);
+                        break;
+                    case 'shannon':
+                        marker = createShannonMarker(coords, feature.properties);
+                        break;
+                }
+                
+                if (marker) {
+                    currentLayer.addLayer(marker);
+                }
+            });
+
+            currentLayer.addTo(map);
+        }
+
+        function createAbundanceMarker(coords, properties) {
+            let radius, color;
+            const abundance = properties.abondance || 0;
+
+            if (abundance < 30) {
+                radius = 10;
+                color = '#ff7800';
+            } else if (abundance < 80) {
+                radius = 15;
+                color = '#ffaa00';
+            } else {
+                radius = 20;
+                color = '#ff4444';
+            }
+
+            const marker = L.circleMarker(coords, {
+                radius: radius,
+                fillColor: color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            });
+
+            marker.bindPopup(`
+                <div style="padding: 15px; min-width: 200px;">
+                    <h3 style="margin: 0 0 15px 0; color: #2d5a27; display: flex; align-items: center;">
+                        <i class="fas fa-chart-bar" style="margin-right: 8px;"></i>
+                        Abondance - ${properties.pg_id}
+                    </h3>
+                    <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 10px; border-radius: 8px;">
+                        <div style="font-size: 1.2em; font-weight: bold; color: ${color}; text-align: center;">
+                            ${abundance} spécimens
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <div><strong>Année:</strong> ${properties.annees}</div>
+                        <div><strong>Session:</strong> ${properties.sess_num}</div>
+                    </div>
+                </div>
+            `);
+
+            return marker;
+        }
+
+        function createDiversityMarker(coords, properties) {
+            const diversity = properties.diversite || 0;
+            const color = `hsl(${diversity * 20}, 70%, 50%)`;
+
+            const marker = L.circleMarker(coords, {
+                radius: 12,
+                fillColor: color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            });
+
+            marker.bindPopup(`
+                <div style="padding: 15px; min-width: 200px;">
+                    <h3 style="margin: 0 0 15px 0; color: #2d5a27; display: flex; align-items: center;">
+                        <i class="fas fa-chart-pie" style="margin-right: 8px;"></i>
+                        Diversité - ${properties.pg_id}
+                    </h3>
+                    <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 10px; border-radius: 8px;">
+                        <div style="font-size: 1.2em; font-weight: bold; color: ${color}; text-align: center;">
+                            ${diversity} types d'espèces
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <div><strong>Année:</strong> ${properties.annees}</div>
+                        <div><strong>Session:</strong> ${properties.sess_num}</div>
+                    </div>
+                </div>
+            `);
+
+            return marker;
+        }
+
+        function createFaunaMarker(coords, properties) {
+            const marker = L.circleMarker(coords, {
+                radius: 12,
+                fillColor: '#4a7c59',
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            });
+
+            // Compter les espèces présentes
+            const faunaTypes = ['acariens', 'araignees', 'carabes', 'charancons', 'cicadelles', 'cloportes', 'coccinelle', 'collembole', 'elaterides', 'escargots', 'fourmis', 'gendarmes', 'larvcolep', 'larvlepid', 'larvdipte', 'limaces', 'myrchilo', 'myrdiplo', 'opilions', 'orthoptere', 'perc_oreil', 'punaises', 'scarabees', 'staphylins', 'vers_terre'];
+            let faunaPresent = 0;
+            faunaTypes.forEach(type => {
+                if (properties[type] && properties[type] > 0) {
+                    faunaPresent++;
+                }
+            });
+
+            marker.bindPopup(`
+                <div style="padding: 15px; min-width: 250px;">
+                    <h3 style="margin: 0 0 15px 0; color: #2d5a27; display: flex; align-items: center;">
+                        <i class="fas fa-bug" style="margin-right: 8px;"></i>
+                        Faune - ${properties.pg_id}
+                    </h3>
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        <div style="font-size: 1.5em; font-weight: bold; color: #4a7c59;">
+                            ${faunaPresent} types d'espèces
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <div><strong>Année:</strong> ${properties.annees}</div>
+                        <div><strong>Session:</strong> ${properties.sess_num}</div>
+                    </div>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <small style="color: #888;">Voir le détail dans le panneau latéral</small>
+                    </div>
+                </div>
+            `);
+
+            return marker;
+        }
+
+        function createShannonMarker(coords, properties) {
+            let radius, color;
+            const shannon = properties.shanon || 0;
+
+            if (shannon < 2) {
+                radius = 8;
+                color = '#ff7800';
+            } else if (shannon < 3) {
+                radius = 13;
+                color = '#FFFF00';
+            } else {
+                radius = 20;
+                color = '#008000';
+            }
+
+            const marker = L.circleMarker(coords, {
+                radius: radius,
+                fillColor: color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            });
+
+            marker.bindPopup(`
+                <div style="padding: 15px; min-width: 200px;">
+                    <h3 style="margin: 0 0 15px 0; color: #2d5a27; display: flex; align-items: center;">
+                        <i class="fas fa-calculator" style="margin-right: 8px;"></i>
+                        Shannon - ${properties.pg_id}
+                    </h3>
+                    <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 10px; border-radius: 8px;">
+                        <div style="font-size: 1.2em; font-weight: bold; color: ${color}; text-align: center;">
+                            ${shannon}
+                        </div>
+                        <div style="text-align: center; font-size: 0.9em; color: #666; margin-top: 5px;">
+                            ${getDiversityLevel(shannon)}
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <div><strong>Année:</strong> ${properties.annees}</div>
+                        <div><strong>Session:</strong> ${properties.sess_num}</div>
+                    </div>
+                </div>
+            `);
+
+            return marker;
+        }
+
+        function getDiversityLevel(shannon) {
+            if (shannon < 2) return 'Diversité faible';
+            if (shannon < 3) return 'Diversité moyenne';
+            return 'Diversité élevée';
+        }
+
+        function openSidePanel(data) {
+            const panel = document.getElementById('sidePanel');
+            const title = document.getElementById('panelTitle');
+            const content = document.getElementById('panelContent');
+
+            title.innerHTML = `<i class="fas fa-chart-line"></i> ${getMenuDisplayName(selectedMenu)}`;
+            
+            let panelContent = generatePanelContent(data);
+            content.innerHTML = panelContent;
+
+            panel.classList.add('open');
+
+            // Créer un graphique si c'est la diversité
+            if (selectedMenu === 'diversity') {
+                setTimeout(() => createDiversityChart(data), 300);
+            }
+        }
+
+        function generatePanelContent(data) {
+            let content = '';
+
+            switch (selectedMenu) {
+                case 'abundance':
+                    content = generateAbundanceContent(data);
+                    break;
+                case 'diversity':
+                    content = generateDiversityContent(data);
+                    break;
+                case 'fauna':
+                    content = generateFaunaContent(data);
+                    break;
+                case 'shannon':
+                    content = generateShannonContent(data);
+                    break;
+            }
+
+            return content;
+        }
+
+        function generateAbundanceContent(data) {
+            const totalAbundance = data.reduce((sum, item) => sum + (item.properties.abondance || 0), 0);
+            const avgAbundance = Math.round(totalAbundance / data.length);
+
+            let content = `
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: var(--primary-color); margin-bottom: 1rem;">
+                        <i class="fas fa-info-circle"></i> À propos de l'abondance
+                    </h3>
+                    <p style="line-height: 1.6; margin-bottom: 1rem;">
+                        L'abondance représente la somme totale des différentes espèces de faune capturées dans chaque piège.
+                        Elle donne une indication sur la densité de la population dans la zone étudiée.
+                    </p>
+                    <div style="background: var(--background); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);">${totalAbundance}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Total spécimens</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: var(--secondary-color);">${avgAbundance}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Moyenne par piège</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-palette"></i> Légende des tailles</h4>
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background-color: #ff4444; width: 20px; height: 20px;"></div>
+                        <span>Abondance ≥ 80 spécimens</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background-color: #ffaa00; width: 15px; height: 15px;"></div>
+                        <span>30 ≤ Abondance < 80 spécimens</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background-color: #ff7800; width: 10px; height: 10px;"></div>
+                        <span>Abondance < 30 spécimens</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-table"></i> Détail par piège</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Piège</th>
+                                <th>Abondance</th>
+                                <th>Niveau</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            data.forEach(item => {
+                const abundance = item.properties.abondance || 0;
+                let level, levelColor;
+                
+                if (abundance >= 80) {
+                    level = 'Élevée';
+                    levelColor = '#ff4444';
+                } else if (abundance >= 30) {
+                    level = 'Moyenne';
+                    levelColor = '#ffaa00';
+                } else {
+                    level = 'Faible';
+                    levelColor = '#ff7800';
+                }
+
+                content += `
+                    <tr>
+                        <td><strong>${item.properties.pg_id}</strong></td>
+                        <td>${abundance}</td>
+                        <td><span style="color: ${levelColor}; font-weight: bold;">${level}</span></td>
+                    </tr>
+                `;
+            });
+
+            content += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            return content;
+        }
+
+        function generateDiversityContent(data) {
+            const totalDiversity = data.reduce((sum, item) => sum + (item.properties.diversite || 0), 0);
+            const avgDiversity = Math.round((totalDiversity / data.length) * 10) / 10;
+
+            return `
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: var(--primary-color); margin-bottom: 1rem;">
+                        <i class="fas fa-info-circle"></i> À propos de la diversité
+                    </h3>
+                    <p style="line-height: 1.6; margin-bottom: 1rem;">
+                        La diversité indique le nombre de types différents de faune présents dans chaque piège.
+                        Plus la valeur est élevée, plus l'écosystème local est riche en variété d'espèces.
+                    </p>
+                    <div style="background: var(--background); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);">${totalDiversity}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Types d'espèces total</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: var(--secondary-color);">${avgDiversity}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Moyenne par piège</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-chart-bar"></i> Distribution de la diversité</h4>
+                    <canvas id="diversityChart" width="400" height="300"></canvas>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-table"></i> Analyse détaillée</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Piège</th>
+                                <th>Diversité</th>
+                                <th>Évaluation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(item => {
+                                const diversity = item.properties.diversite || 0;
+                                let evaluation, color;
+                                
+                                if (diversity >= 10) {
+                                    evaluation = 'Excellente';
+                                    color = '#008000';
+                                } else if (diversity >= 7) {
+                                    evaluation = 'Bonne';
+                                    color = '#4a7c59';
+                                } else if (diversity >= 4) {
+                                    evaluation = 'Moyenne';
+                                    color = '#ffaa00';
+                                } else {
+                                    evaluation = 'Faible';
+                                    color = '#ff7800';
+                                }
+
+                                return `
+                                    <tr>
+                                        <td><strong>${item.properties.pg_id}</strong></td>
+                                        <td>${diversity}</td>
+                                        <td><span style="color: ${color}; font-weight: bold;">${evaluation}</span></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function generateFaunaContent(data) {
+            const faunaTypes = {
+                'acariens': { name: 'Acariens', url: 'https://ephytia.inra.fr/fr/C/25147/jardibiodiv-Acariens' },
+                'araignees': { name: 'Araignées', url: 'https://ephytia.inra.fr/fr/C/25150/jardibiodiv-Araignees' },
+                'carabes': { name: 'Carabes', url: 'https://ephytia.inra.fr/fr/C/25136/jardibiodiv-Carabes' },
+                'charancons': { name: 'Charançons', url: 'https://ephytia.inra.fr/fr/C/25141/jardibiodiv-Charancons' },
+                'cicadelles': { name: 'Cicadelles', url: 'https://ephytia.inra.fr/fr/C/25133/jardibiodiv-Cicadelles' },
+                'cloportes': { name: 'Cloportes', url: 'https://ephytia.inra.fr/fr/C/25151/jardibiodiv-Cloportes' },
+                'coccinelle': { name: 'Coccinelles', url: 'https://ephytia.inra.fr/fr/C/25138/jardibiodiv-Coccinelles' },
+                'collembole': { name: 'Collemboles', url: 'https://ephytia.inra.fr/fr/C/25146/jardibiodiv-Collemboles-symphypleones' },
+                'elaterides': { name: 'Élatérides', url: 'https://ephytia.inra.fr/fr/C/25139/jardibiodiv-Elaterides-taupins' },
+                'escargots': { name: 'Escargots', url: 'https://ephytia.inra.fr/fr/C/25154/jardibiodiv-Escargots' },
+                'fourmis': { name: 'Fourmis', url: 'https://ephytia.inra.fr/fr/C/25142/jardibiodiv-Fourmis' },
+                'gendarmes': { name: 'Gendarmes', url: 'https://ephytia.inra.fr/fr/C/25132/jardibiodiv-Gendarmes-punaises' },
+                'larvcolep': { name: 'Larves coléoptères', url: 'https://ephytia.inra.fr/fr/C/25156/jardibiodiv-Larves-de-coleoptere-scarabee-hanneton' },
+                'larvlepid': { name: 'Larves lépidoptères', url: 'https://ephytia.inra.fr/fr/C/25144/jardibiodiv-Larves-de-lepidoptere-chenilles-de-papillon' },
+                'larvdipte': { name: 'Larves diptères', url: 'https://ephytia.inra.fr/fr/C/25159/jardibiodiv-Larves-de-coleoptere-scarabee-cetoine-doree' },
+                'limaces': { name: 'Limaces', url: 'https://ephytia.inra.fr/fr/C/25155/jardibiodiv-Limaces' },
+                'myrchilo': { name: 'Myriapodes chilopodes', url: 'https://ephytia.inra.fr/fr/C/25152/jardibiodiv-Myriapodes-chilopodes' },
+                'myrdiplo': { name: 'Myriapodes diplopodes', url: 'https://ephytia.inra.fr/fr/C/25153/jardibiodiv-Myriapodes-diplopodes' },
+                'opilions': { name: 'Opilions', url: 'https://ephytia.inra.fr/fr/C/25149/jardibiodiv-Opilions-faucheux' },
+                'orthoptere': { name: 'Orthoptères', url: 'https://ephytia.inra.fr/fr/C/25134/jardibiodiv-Orthopteres-sauterelles-criquets-grillons' },
+                'perc_oreil': { name: 'Perce-oreilles', url: 'https://ephytia.inra.fr/fr/C/25135/jardibiodiv-Perce-oreilles' },
+                'punaises': { name: 'Punaises', url: 'https://ephytia.inra.fr/fr/C/25125/jardibiodiv-Punaises' },
+                'scarabees': { name: 'Scarabées', url: 'https://ephytia.inra.fr/fr/C/25137/jardibiodiv-Scarabees' },
+                'staphylins': { name: 'Staphylins', url: 'https://ephytia.inra.fr/fr/C/25140/jardibiodiv-Staphylins' },
+                'vers_terre': { name: 'Vers de terre', url: 'https://ephytia.inra.fr/fr/C/25158/jardibiodiv-Vers-de-terre' }
+            };
+
+            let content = `
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: var(--primary-color); margin-bottom: 1rem;">
+                        <i class="fas fa-info-circle"></i> Analyse de la faune
+                    </h3>
+                    <p style="line-height: 1.6; margin-bottom: 1.5rem;">
+                        Cette section présente le détail des différentes espèces de faune capturées dans les pièges.
+                        Cliquez sur les liens pour en savoir plus sur chaque espèce.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-table"></i> Inventaire détaillé</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Espèce</th>
+                                <th>Piège</th>
+                                <th>Quantité</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            data.forEach(item => {
+                Object.keys(faunaTypes).forEach(faunaType => {
+                    const quantity = item.properties[faunaType] || 0;
+                    if (quantity > 0) {
+                        content += `
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-bug" style="color: var(--primary-color);"></i>
+                                        ${faunaTypes[faunaType].name}
+                                    </div>
+                                </td>
+                                <td><strong>${item.properties.pg_id}</strong></td>
+                                <td>
+                                    <span style="background: var(--accent-color); padding: 2px 8px; border-radius: 12px; font-weight: bold; color: white;">
+                                        ${quantity}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="${faunaTypes[faunaType].url}" target="_blank" style="color: var(--primary-color); text-decoration: none;">
+                                        <i class="fas fa-external-link-alt"></i> En savoir plus
+                                    </a>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                });
+            });
+
+            content += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            return content;
+        }
+
+        function generateShannonContent(data) {
+            const avgShannon = Math.round((data.reduce((sum, item) => sum + (item.properties.shanon || 0), 0) / data.length) * 100) / 100;
+
+            return `
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: var(--primary-color); margin-bottom: 1rem;">
+                        <i class="fas fa-info-circle"></i> Indice de Shannon
+                    </h3>
+                    <p style="line-height: 1.6; margin-bottom: 1rem;">
+                        L'indice de Shannon mesure la diversité biologique en tenant compte du nombre d'espèces 
+                        et de leur répartition équitable dans un écosystème. Plus l'indice est élevé, plus la 
+                        biodiversité est importante.
+                    </p>
+                    <div style="background: var(--background); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--primary-color);">${avgShannon}</div>
+                            <div style="font-size: 0.9rem; color: #666;">Indice moyen de Shannon</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-palette"></i> Échelle d'interprétation</h4>
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background-color: #008000; width: 20px; height: 20px;"></div>
+                        <span>Shannon ≥ 3.0 - Diversité élevée</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background-color: #FFFF00; width: 13px; height: 13px;"></div>
+                        <span>2.0 ≤ Shannon < 3.0 - Diversité moyenne</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-circle" style="background-color: #ff7800; width: 8px; height: 8px;"></div>
+                        <span>Shannon < 2.0 - Diversité faible</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-table"></i> Analyse par piège</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Piège</th>
+                                <th>Indice Shannon</th>
+                                <th>Niveau biodiversité</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(item => {
+                                const shannon = item.properties.shanon || 0;
+                                let level, color;
+                                
+                                if (shannon >= 3) {
+                                    level = 'Élevée';
+                                    color = '#008000';
+                                } else if (shannon >= 2) {
+                                    level = 'Moyenne';
+                                    color = '#FFFF00';
+                                } else {
+                                    level = 'Faible';
+                                    color = '#ff7800';
+                                }
+
+                                return `
+                                    <tr>
+                                        <td><strong>${item.properties.pg_id}</strong></td>
+                                        <td>${shannon}</td>
+                                        <td><span style="color: ${color}; font-weight: bold;">${level}</span></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function createDiversityChart(data) {
+            const ctx = document.getElementById('diversityChart');
+            if (!ctx) return;
+
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            const labels = data.map(item => item.properties.pg_id);
+            const diversityData = data.map(item => item.properties.diversite || 0);
+
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nombre d\'espèces',
+                        data: diversityData,
+                        backgroundColor: 'rgba(74, 124, 89, 0.7)',
+                        borderColor: 'rgba(74, 124, 89, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Nombre d\'espèces'
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Identifiant du piège'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutBounce'
+                    }
+                }
+            });
+        }
+
+        function closeSidePanel() {
+            document.getElementById('sidePanel').classList.remove('open');
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+        }
+
+        function updateStats() {
+            if (!window.pieges || !window.pieges.features) return;
+
+            const totalPieges = window.pieges.features.length;
+            const sessions = [...new Set(window.pieges.features.map(f => f.properties.sess_num))].filter(s => s);
+            const annees = [...new Set(window.pieges.features.map(f => f.properties.annees))].filter(a => a);
+
+            document.getElementById('totalPieges').textContent = totalPieges;
+            document.getElementById('totalSessions').textContent = sessions.length;
+            document.getElementById('totalAnnees').textContent = annees.length;
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            
+            const colors = {
+                'success': '#28a745',
+                'warning': '#ffc107',
+                'error': '#dc3545',
+                'info': '#17a2b8'
+            };
+            
+            notification.style.background = colors[type] || colors.info;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-${type === 'success' ? 'check' : type === 'warning' ? 'exclamation-triangle' : type === 'error' ? 'times' : 'info'}-circle"></i>
+                    ${message}
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        function resetView() {
+            // Réinitialiser les variables
+            selectedMenu = '';
+            selectedAbundanceType = '';
+            selectedDate = '';
+            selectedSession = '';
+            submenuSelected = false;
+
+            // Réinitialiser l'interface
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            document.querySelectorAll('.sub-menu').forEach(menu => {
+                menu.style.display = 'none';
+            });
+
+            document.querySelectorAll('.sub-menu-item').forEach(item => {
+                item.style.background = 'var(--background)';
+                item.style.color = 'inherit';
+            });
+
+            document.getElementById('filterContainer').style.display = 'none';
+            document.getElementById('dateSelect').value = 'choix';
+            document.getElementById('sessionSelect').value = 'choix';
+
+            // Restaurer la carte initiale
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+                currentLayer = null;
+            }
+
+            if (geojsonLayer && !map.hasLayer(geojsonLayer)) {
+                geojsonLayer.addTo(map);
+            }
+
+            // Fermer le panel latéral
+            closeSidePanel();
+
+            // Centrer la carte
+            map.setView([48.5734053, 7.7521113], 13);
+
+            showNotification('Vue réinitialisée', 'info');
+        }
+
+        function showHelp() {
+            const helpContent = `
+                <div style="padding: 20px; max-width: 500px;">
+                    <h2 style="color: var(--primary-color); margin-bottom: 20px;">
+                        <i class="fas fa-question-circle"></i> Guide d'utilisation
+                    </h2>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="color: var(--secondary-color); margin-bottom: 10px;">
+                            <i class="fas fa-play"></i> Comment commencer
+                        </h3>
+                        <ol style="line-height: 1.6;">
+                            <li>Choisissez un type d'analyse dans le menu de gauche</li>
+                            <li>Pour l'abondance, sélectionnez "par piège" ou "par date"</li>
+                            <li>Si "par date", choisissez une année et une session</li>
+                            <li>Cliquez sur "Analyser" pour voir les résultats</li>
+                            <li>Explorez la carte et consultez le panneau de détails</li>
+                        </ol>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="color: var(--secondary-color); margin-bottom: 10px;">
+                            <i class="fas fa-chart-bar"></i> Types d'analyses
+                        </h3>
+                        <ul style="line-height: 1.6;">
+                            <li><strong>Abondance :</strong> Quantité totale d'espèces par piège</li>
+                            <li><strong>Diversité :</strong> Nombre de types d'espèces différentes</li>
+                            <li><strong>Faune :</strong> Détail par espèce avec liens informatifs</li>
+                            <li><strong>Shannon :</strong> Indice de biodiversité scientifique</li>
+                        </ul>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="color: var(--secondary-color); margin-bottom: 10px;">
+                            <i class="fas fa-mouse-pointer"></i> Interactions
+                        </h3>
+                        <ul style="line-height: 1.6;">
+                            <li><strong>Clic sur marqueur :</strong> Voir les détails du piège</li>
+                            <li><strong>Abondance par piège :</strong> Cliquez directement sur un piège</li>
+                            <li><strong>Échap :</strong> Fermer le panneau latéral</li>
+                        </ul>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button onclick="closeHelp()" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
+                            <i class="fas fa-times"></i> Fermer
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            const helpModal = document.createElement('div');
+            helpModal.id = 'helpModal';
+            helpModal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 3000;
+                backdrop-filter: blur(5px);
+            `;
+
+            const helpDialog = document.createElement('div');
+            helpDialog.style.cssText = `
+                background: white;
+                border-radius: 15px;
+                box-shadow: var(--shadow-lg);
+                max-width: 90%;
+                max-height: 90%;
+                overflow-y: auto;
+            `;
+
+            helpDialog.innerHTML = helpContent;
+            helpModal.appendChild(helpDialog);
+            document.body.appendChild(helpModal);
+
+            // Fermer en cliquant en dehors
+            helpModal.addEventListener('click', function(e) {
+                if (e.target === helpModal) {
+                    closeHelp();
+                }
+            });
+        }
+
+        function closeHelp() {
+            const helpModal = document.getElementById('helpModal');
+            if (helpModal) {
+                document.body.removeChild(helpModal);
+            }
+        }
+
+        // Gestion des événements clavier
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSidePanel();
+                closeHelp();
+            }
+        });
+
+        // Gestion du redimensionnement de la fenêtre
+        window.addEventListener('resize', function() {
+            if (map) {
+                map.invalidateSize();
+            }
+        });
+
+        // Adaptation mobile
+        function adaptForMobile() {
+            if (window.innerWidth <= 768) {
+                const mainContainer = document.querySelector('.main-container');
+                mainContainer.style.gridTemplateColumns = '1fr';
+                mainContainer.style.height = 'auto';
+
+                const controlPanel = document.querySelector('.control-panel');
+                controlPanel.style.marginBottom = '1rem';
+
+                const mapContainer = document.querySelector('.map-container');
+                mapContainer.style.height = '400px';
+
+                const statsBar = document.querySelector('.stats-bar');
+                statsBar.style.flexDirection = 'column';
+                statsBar.style.gap = '0.5rem';
+            }
+        }
+
+        // Initialisation finale
+        window.addEventListener('load', function() {
+            adaptForMobile();
+            
+            // Écouter les changements d'orientation
+            window.addEventListener('orientationchange', function() {
+                setTimeout(() => {
+                    adaptForMobile();
+                    if (map) map.invalidateSize();
+                }, 500);
+            });
+        });
+
+        // Gestion des erreurs globales
+        window.addEventListener('error', function(e) {
+            console.error('Erreur détectée:', e.error);
+            showNotification('Une erreur est survenue. Veuillez vérifier la console.', 'error');
+        });
+
+        // Message de fin d'initialisation
+        console.log('🌱 Nos Sol - Dashboard de biodiversité initialisé avec les vraies données!');
+    </script>
+</body>
+</html>
